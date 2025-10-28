@@ -310,6 +310,20 @@ def get_location_emoji(location: str) -> str:
     }
     return location_emojis.get(location, '📍')
 
+def format_lodging_display(lodging_name: str, lodging_location: str) -> str:
+    """Format lodging display avoiding duplicate location names"""
+    if not lodging_name:
+        return "Staff will assign"
+
+    # If name already contains location info (like "Downtown Cabin 1 (Woodshed)"),
+    # don't add location again
+    # Otherwise, add location in parentheses
+    if lodging_location and lodging_location.lower() not in lodging_name.lower():
+        return f"{lodging_name} ({lodging_location})"
+    else:
+        # Just return the name - it already has location context
+        return lodging_name
+
 def create_summary_metric(title: str, value: int, delta: int = None):
     """Create a metric display"""
     if delta is not None:

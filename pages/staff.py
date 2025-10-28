@@ -5,7 +5,7 @@ from utils.auth import require_auth, create_logout_button
 from utils.helpers import (
     format_booking_status, get_location_emoji, create_summary_metric,
     format_date_range, get_booking_type_info, create_availability_calendar,
-    create_visual_calendar, get_availability_summary
+    create_visual_calendar, get_availability_summary, format_lodging_display
 )
 from utils.styles import show_success_message, show_error_message
 from database.operations import BookingOperations
@@ -161,7 +161,7 @@ def show_booking_requests():
                 st.markdown(f"**{booking['booking_type'].title()}** • {format_date_range(datetime.strptime(booking['check_in'], '%Y-%m-%d').date(), datetime.strptime(booking['check_out'], '%Y-%m-%d').date())}")
                 
                 if booking.get('lodging_name'):
-                    st.markdown(f"📍 {booking['lodging_name']} ({booking['lodging_location']})")
+                    st.markdown(f"📍 {format_lodging_display(booking['lodging_name'], booking['lodging_location'])}")
                 else:
                     st.markdown("📍 *Staff will assign accommodation*")
             
@@ -381,7 +381,7 @@ def show_active_stays():
             with col1:
                 st.markdown(f"### {stay['guest_name']}")
                 if stay.get('lodging_name'):
-                    st.markdown(f"📍 **Room:** {stay['lodging_name']} ({stay['lodging_location']})")
+                    st.markdown(f"📍 **Room:** {format_lodging_display(stay['lodging_name'], stay['lodging_location'])}")
                 else:
                     st.warning("⚠️ No room assigned yet")
                 st.markdown(f"**Type:** {stay['booking_type'].title()}")
@@ -429,10 +429,22 @@ def show_active_stays():
 
 def show_room_assignment():
     """Interface for assigning rooms to pending booking requests"""
-    st.header("🔑 Assign Rooms to Inquiries")
+    st.header("🔑 Room Assignment & Direct Booking")
 
-    st.info("This page allows you to assign specific rooms to pending booking inquiries. Remember: staff always assigns rooms, guests never self-book.")
+    # Create tabs for different actions
+    tab1, tab2 = st.tabs(["📋 Assign to Inquiries", "➕ Create Direct Booking"])
 
+    with tab1:
+        st.info("Assign specific rooms to pending booking inquiries. Remember: staff always assigns rooms, guests never self-book.")
+        show_inquiry_assignment()
+
+    with tab2:
+        st.info("Create a direct booking for family, friends, staff, or to block off a room - without going through the inquiry system.")
+        show_direct_booking_form()
+
+
+def show_inquiry_assignment():
+    """Show the inquiry assignment interface"""
     # Get pending bookings (inquiries without room assignments)
     pending_bookings = BookingOperations.get_all_booking_requests(status='pending')
 
@@ -538,7 +550,7 @@ def show_room_assignment():
                 col1, col2 = st.columns(2)
 
                 with col1:
-                    st.write(f"**Room:** {booking.get('lodging_name', 'Unknown')} ({booking.get('lodging_location', 'Unknown')})")
+                    st.write(f"**Room:** {format_lodging_display(booking.get('lodging_name', 'Unknown'), booking.get('lodging_location', 'Unknown'))}")
                     st.write(f"**Dates:** {booking['check_in']} to {booking['check_out']}")
                     st.write(f"**Guests:** {booking['guests']}")
 
@@ -559,6 +571,126 @@ def show_room_assignment():
                         # Clear the assignment to allow re-assignment
                         if BookingOperations.assign_room_to_booking(booking['id'], booking['lodging_unit_id']):
                             st.info("You can now assign a different room above")
+
+
+def show_direct_booking_form():
+    """Form for staff to create direct bookings"""
+    st.markdown("### Create New Booking")
+
+    with st.form("direct_booking_form"):
+        col1, col2 = st.columns(2)
+
+        with col1:
+            guest_name = st.text_input("Guest Name *", help="Full name of guest or 'BLOCKED' to block off room")
+            email = st.text_input("Email", help="Optional for room blocks")
+            phone = st.text_input("Phone", help="Optional")
+
+            booking_type = st.selectbox(
+                "Booking Type *",
+                ["respite", "refuge", "retreat", "staff", "family", "blocked"],
+                format_func=lambda x: x.title()
+            )
+
+        with col2:
+            check_in = st.date_input("Check-in Date *", value=date.today())
+            check_out = st.date_input("Check-out Date *", value=date.today() + timedelta(days=3))
+            guests = st.number_input("Number of Guests *", min_value=1, max_value=20, value=1)
+
+        # Room selection
+        st.markdown("### Select Room")
+
+        # Get available units for the selected dates
+        if check_in and check_out and check_in < check_out:
+            available_units = BookingOperations.get_available_units(
+                check_in,
+                check_out,
+                guests
+            )
+
+            if available_units:
+                # Group by location
+                locations = {}
+                for unit in available_units:
+                    location = unit['location']
+                    if location not in locations:
+                        locations[location] = []
+                    locations[location].append(unit)
+
+                selected_unit_id = None
+                for location, units in locations.items():
+                    st.markdown(f"**{get_location_emoji(location)} {location}**")
+
+                    unit_options = {f"{unit['name']} (Capacity: {unit['capacity']})": unit['id'] for unit in units}
+
+                    if unit_options:
+                        selected = st.selectbox(
+                            f"Choose unit in {location}:",
+                            options=["-- Select --"] + list(unit_options.keys()),
+                            key=f"select_{location}"
+                        )
+
+                        if selected != "-- Select --":
+                            selected_unit_id = unit_options[selected]
+                            break
+
+                # Store selected unit in form
+                if 'selected_unit_id' not in locals():
+                    selected_unit_id = None
+            else:
+                st.warning("No available units for these dates and guest count. Try different dates or guest count.")
+                selected_unit_id = None
+        else:
+            st.warning("Please select valid check-in and check-out dates")
+            selected_unit_id = None
+
+        special_requests = st.text_area("Special Requests/Notes", help="Any notes about this booking")
+
+        submitted = st.form_submit_button("Create Booking", type="primary")
+
+        if submitted:
+            # Validation
+            if not guest_name:
+                st.error("Guest name is required")
+            elif not check_in or not check_out:
+                st.error("Check-in and check-out dates are required")
+            elif check_in >= check_out:
+                st.error("Check-out must be after check-in")
+            elif not selected_unit_id:
+                st.error("Please select a room")
+            else:
+                # Create the booking
+                try:
+                    booking_data = {
+                        'guest_name': guest_name,
+                        'email': email if email else f"staff-booking-{datetime.now().timestamp()}@wellspring.local",
+                        'phone': phone,
+                        'booking_type': booking_type,
+                        'check_in': check_in,
+                        'check_out': check_out,
+                        'guests': guests,
+                        'lodging_unit_id': selected_unit_id,
+                        'special_requests': special_requests,
+                        'notes': f"Direct booking created by staff on {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+                    }
+
+                    booking_id = BookingOperations.create_booking_request(booking_data)
+
+                    if booking_id:
+                        # Auto-confirm the booking
+                        BookingOperations.update_booking_status(booking_id, 'confirmed', booking_data['notes'])
+
+                        st.success(f"✅ Booking created and confirmed! Booking ID: {booking_id}")
+                        st.balloons()
+                        st.info("The booking has been automatically confirmed. You can view it in 'Manage Bookings' or 'Active Stays'.")
+
+                        # Provide a button to create another
+                        if st.button("Create Another Booking"):
+                            st.rerun()
+                    else:
+                        st.error("Failed to create booking")
+
+                except Exception as e:
+                    st.error(f"Error creating booking: {str(e)}")
 
 
 def show_reports():
