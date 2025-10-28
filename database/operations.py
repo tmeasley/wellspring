@@ -15,7 +15,7 @@ class BookingOperations:
             query = "SELECT * FROM lodging_units"
             if active_only:
                 query += " WHERE is_active = 1"
-            query += " ORDER BY location, name"
+            query += " ORDER BY display_order, location, name"
             
             cursor = conn.execute(query)
             units = [dict(row) for row in cursor.fetchall()]
@@ -269,9 +269,9 @@ class BookingOperations:
                         (check_in >= ? AND check_out <= ?)
                     )
                 )
-                ORDER BY location, name
+                ORDER BY display_order, location, name
             """
-            
+
             cursor = conn.execute(query, (
                 guests, check_in, check_in, check_out, check_out, check_in, check_out
             ))
