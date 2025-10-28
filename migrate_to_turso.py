@@ -1,15 +1,32 @@
 #!/usr/bin/env python3
 """
 Migrate local SQLite database to Turso cloud database
+
+IMPORTANT: Set environment variables before running:
+  export USE_TURSO=true
+  export TURSO_DATABASE_URL="your-turso-database-url"
+  export TURSO_AUTH_TOKEN="your-turso-auth-token"
+
+Or create a .env file with these variables.
 """
 
 import os
 import sys
 
-# Set Turso credentials
+# Check if Turso credentials are set
+if not os.getenv("TURSO_DATABASE_URL") or not os.getenv("TURSO_AUTH_TOKEN"):
+    print("ERROR: Turso credentials not found!")
+    print("\nPlease set the following environment variables:")
+    print("  TURSO_DATABASE_URL")
+    print("  TURSO_AUTH_TOKEN")
+    print("\nYou can either:")
+    print("  1. Export them in your shell")
+    print("  2. Create a .env file with these variables")
+    print("  3. Pass them directly: TURSO_DATABASE_URL='...' TURSO_AUTH_TOKEN='...' python migrate_to_turso.py")
+    sys.exit(1)
+
+# Enable Turso mode
 os.environ["USE_TURSO"] = "true"
-os.environ["TURSO_DATABASE_URL"] = "libsql://wellspring-tmeasley.aws-us-east-1.turso.io"
-os.environ["TURSO_AUTH_TOKEN"] = "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3NjE2NjI5MjYsImlkIjoiNjVjNDgwM2ItY2VlYS00N2IwLTk1YWUtOWE5MGYyYzY0YjYzIiwicmlkIjoiYTlmNWFlYTgtZWQzOC00YmYyLThlOTktODNmNjk5YWY3MjIyIn0.TaSXzPClMfrgphBw29scFP_vy0_XgQgyukM45xwdaDoZ6SOqjDpmNyp0HKzqn6FN1-NcYH66uDB6rOjvw0S0Cg"
 
 from database.models import initialize_database, seed_initial_data
 from database.connection import get_db_connection
