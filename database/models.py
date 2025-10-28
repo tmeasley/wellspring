@@ -64,6 +64,113 @@ def initialize_database():
         )
     """)
     
+    # Property management tables
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS property_notes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            lodging_unit_id INTEGER NOT NULL,
+            note_type VARCHAR(50) NOT NULL,
+            title VARCHAR(200) NOT NULL,
+            content TEXT NOT NULL,
+            priority VARCHAR(20) DEFAULT 'medium',
+            created_by VARCHAR(100),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (lodging_unit_id) REFERENCES lodging_units (id)
+        )
+    """)
+    
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS maintenance_tasks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            lodging_unit_id INTEGER NOT NULL,
+            task_title VARCHAR(200) NOT NULL,
+            description TEXT,
+            task_type VARCHAR(50) NOT NULL,
+            priority VARCHAR(20) DEFAULT 'medium',
+            status VARCHAR(20) DEFAULT 'pending',
+            scheduled_date DATE,
+            completed_date DATE,
+            assigned_to VARCHAR(100),
+            estimated_cost DECIMAL(10,2),
+            actual_cost DECIMAL(10,2),
+            created_by VARCHAR(100),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (lodging_unit_id) REFERENCES lodging_units (id)
+        )
+    """)
+    
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS property_todos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            lodging_unit_id INTEGER,
+            title VARCHAR(200) NOT NULL,
+            description TEXT,
+            priority VARCHAR(20) DEFAULT 'medium',
+            status VARCHAR(20) DEFAULT 'pending',
+            due_date DATE,
+            assigned_to VARCHAR(100),
+            category VARCHAR(50),
+            created_by VARCHAR(100),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            completed_at TIMESTAMP,
+            FOREIGN KEY (lodging_unit_id) REFERENCES lodging_units (id)
+        )
+    """)
+    
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS property_files (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            lodging_unit_id INTEGER NOT NULL,
+            file_name VARCHAR(255) NOT NULL,
+            file_type VARCHAR(50) NOT NULL,
+            file_category VARCHAR(50) NOT NULL,
+            file_path VARCHAR(500) NOT NULL,
+            file_size INTEGER,
+            description TEXT,
+            uploaded_by VARCHAR(100),
+            uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (lodging_unit_id) REFERENCES lodging_units (id)
+        )
+    """)
+    
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS property_inspections (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            lodging_unit_id INTEGER NOT NULL,
+            inspection_type VARCHAR(50) NOT NULL,
+            inspection_date DATE NOT NULL,
+            inspector_name VARCHAR(100),
+            overall_rating INTEGER CHECK(overall_rating BETWEEN 1 AND 5),
+            checklist_data TEXT,
+            issues_found TEXT,
+            recommendations TEXT,
+            next_inspection_date DATE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (lodging_unit_id) REFERENCES lodging_units (id)
+        )
+    """)
+    
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS maintenance_schedules (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            lodging_unit_id INTEGER NOT NULL,
+            schedule_name VARCHAR(200) NOT NULL,
+            task_type VARCHAR(50) NOT NULL,
+            frequency VARCHAR(50) NOT NULL,
+            next_due_date DATE NOT NULL,
+            last_completed DATE,
+            description TEXT,
+            estimated_cost DECIMAL(10,2),
+            is_active BOOLEAN DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (lodging_unit_id) REFERENCES lodging_units (id)
+        )
+    """)
+    
     conn.commit()
     conn.close()
 

@@ -4,9 +4,13 @@ from datetime import datetime, date, timedelta
 from utils.auth import require_auth, create_logout_button
 from utils.helpers import (
     format_booking_status, get_location_emoji, create_summary_metric,
-    format_date_range, get_booking_type_info
+    format_date_range, get_booking_type_info, create_availability_calendar,
+    create_visual_calendar, get_availability_summary
 )
+from utils.styles import show_success_message, show_error_message
 from database.operations import BookingOperations
+from database.property_operations import PropertyManagementOperations
+from pages.property_management import show_property_management_page
 
 def show_staff_page():
     """Main staff dashboard"""
@@ -20,7 +24,7 @@ def show_staff_page():
         st.header("📋 Dashboard Menu")
         page = st.radio(
             "Select view:",
-            ["Overview", "Booking Requests", "Manage Bookings", "Availability", "Reports"],
+            ["Overview", "Booking Requests", "Manage Bookings", "Availability", "Property Management", "Reports"],
             key="staff_page_selection"
         )
     
@@ -32,11 +36,13 @@ def show_staff_page():
         show_manage_bookings()
     elif page == "Availability":
         show_availability_management()
+    elif page == "Property Management":
+        show_property_management_page()
     elif page == "Reports":
         show_reports()
 
 def show_overview():
-    """Dashboard overview with key metrics"""
+    """Enhanced dashboard overview with key metrics and quick calendar"""
     st.header("📊 Dashboard Overview")
     
     # Get summary statistics
@@ -46,20 +52,37 @@ def show_overview():
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        create_summary_metric("Total Units", summary['total_units'])
-    
+        st.metric("Total Units", summary.get('total_units', 0))
     with col2:
-        create_summary_metric("Pending Requests", summary['pending_requests'])
-    
+        st.metric("Pending Requests", summary.get('pending_bookings', 0))
     with col3:
-        create_summary_metric("Current Occupancy", summary['current_occupancy'])
-    
+        st.metric("Confirmed Bookings", summary.get('confirmed_bookings', 0))
     with col4:
-        create_summary_metric("Confirmed This Month", summary['confirmed_this_month'])
+        st.metric("Today's Check-ins", summary.get('todays_checkins', 0))
+    
+    st.markdown("---")
+    
+    # Quick availability overview
+    st.subheader("🗓️ Quick Availability (Next 7 Days)")
+    
+    units = BookingOperations.get_all_lodging_units()
+    bookings = BookingOperations.get_all_booking_requests()
+    
+    if units and bookings is not None:
+        availability_df = create_availability_calendar(units, bookings, days_ahead=7)
+        
+        if not availability_df.empty:
+            create_visual_calendar(availability_df)
+        else:
+            st.info("No availability data for the next 7 days")
+    else:
+        st.warning("Unable to load availability data")
+    
+    st.markdown("---")
     
     # Recent booking requests
-    st.subheader("🔔 Recent Booking Requests")
-    recent_bookings = BookingOperations.get_all_booking_requests()[:10]
+    st.subheader("📋 Recent Booking Requests")
+    recent_bookings = BookingOperations.get_all_booking_requests(limit=5)
     
     if recent_bookings:
         for booking in recent_bookings:
@@ -249,66 +272,87 @@ def show_manage_bookings():
             )
 
 def show_availability_management():
-    """Manage unit availability"""
-    st.header("📅 Availability Management")
+    """Enhanced availability management page with upfront calendar view"""
+    st.header("🗓️ Availability Management")
     
-    # Get all lodging units
+    # Get data for calendar
     units = BookingOperations.get_all_lodging_units()
+    bookings = BookingOperations.get_all_booking_requests()
     
     if not units:
-        st.error("No lodging units found. Please initialize the database.")
+        st.warning("No lodging units found")
         return
     
-    # Unit selection
-    unit_options = {f"{unit['name']} ({unit['location']})": unit for unit in units}
-    selected_unit_name = st.selectbox("Select Unit:", list(unit_options.keys()))
-    selected_unit = unit_options[selected_unit_name]
+    # Location filter
+    locations = list(set(unit['location'] for unit in units))
+    selected_location = st.selectbox(
+        "Filter by location (optional):",
+        ["All Locations"] + locations,
+        key="availability_location_filter"
+    )
     
-    st.info(f"Managing: **{selected_unit['name']}** - {selected_unit['description']}")
+    location_filter = None if selected_location == "All Locations" else selected_location
     
-    # Date range for blocking
-    st.subheader("Block Dates")
-    col1, col2 = st.columns(2)
+    # Create availability calendar
+    availability_df = create_availability_calendar(units, bookings, days_ahead=21)
     
-    with col1:
-        start_date = st.date_input(
-            "Start Date:",
-            value=date.today(),
-            min_value=date.today()
-        )
+    if availability_df.empty:
+        st.warning("No availability data to display")
+        return
     
-    with col2:
-        end_date = st.date_input(
-            "End Date:",
-            value=date.today() + timedelta(days=1),
-            min_value=start_date + timedelta(days=1)
-        )
+    # Show summary statistics
+    summary = get_availability_summary(availability_df)
+    if summary:
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("Total Capacity", f"{len(units)} units")
+        with col2:
+            st.metric("Available Slots", summary.get('available_slots', 0))
+        with col3:
+            st.metric("Occupied Slots", summary.get('occupied_slots', 0))
+        with col4:
+            st.metric("Occupancy Rate", f"{summary.get('occupancy_rate', 0)}%")
     
-    notes = st.text_area("Reason for blocking:", placeholder="Maintenance, cleaning, etc.")
+    st.markdown("---")
     
-    if st.button("Block Dates"):
-        success = BookingOperations.block_dates(selected_unit['id'], start_date, end_date, notes)
-        if success:
-            st.success(f"Dates blocked for {selected_unit['name']}")
-        else:
-            st.error("Failed to block dates")
+    # Visual calendar display
+    create_visual_calendar(availability_df, location_filter)
     
-    # Show upcoming bookings for this unit
-    st.subheader(f"Upcoming Bookings - {selected_unit['name']}")
-    unit_bookings = [
-        b for b in BookingOperations.get_all_booking_requests('confirmed')
-        if b.get('lodging_unit_id') == selected_unit['id']
-    ]
+    # Detailed availability table
+    st.subheader("Detailed Availability")
     
-    if unit_bookings:
-        for booking in unit_bookings:
-            check_in_date = datetime.strptime(booking['check_in'], '%Y-%m-%d').date()
-            check_out_date = datetime.strptime(booking['check_out'], '%Y-%m-%d').date()
+    # Filter dataframe by location if selected
+    display_df = availability_df.copy()
+    if location_filter:
+        display_df = display_df[display_df['location'] == location_filter]
+    
+    # Group by unit and show next 7 days
+    unique_units = display_df[['unit_id', 'unit_name', 'location', 'capacity']].drop_duplicates()
+    
+    for _, unit in unique_units.iterrows():
+        with st.expander(f"{get_location_emoji(unit['location'])} {unit['unit_name']} (Capacity: {unit['capacity']})"):
+            unit_data = display_df[display_df['unit_id'] == unit['unit_id']].head(7)
             
-            if check_out_date >= date.today():
-                st.write(f"• **{booking['guest_name']}** - {format_date_range(check_in_date, check_out_date)}")
-    else:
-        st.info("No confirmed bookings for this unit.")
+            for _, day in unit_data.iterrows():
+                col1, col2, col3 = st.columns([2, 1, 3])
+                
+                with col1:
+                    st.write(day['date'].strftime('%A, %B %d'))
+                
+                with col2:
+                    if day['available']:
+                        st.success("Available")
+                    else:
+                        if day['booking_info'] and day['booking_info']['status'] == 'pending':
+                            st.warning("Pending")
+                        else:
+                            st.error("Booked")
+                
+                with col3:
+                    if not day['available'] and day['booking_info']:
+                        info = day['booking_info']
+                        st.write(f"Guest: {info.get('guest_name', 'Unknown')} ({info.get('booking_type', 'N/A')})")
+    
 
 def show_reports():
     """Show various reports"""
@@ -364,6 +408,69 @@ def show_reports():
     
     # Location popularity
     st.subheader("🏠 Location Popularity")
+    
+    location_counts = {}
+    for booking in filtered_bookings:
+        location = booking.get('lodging_location', 'Unknown')
+        location_counts[location] = location_counts.get(location, 0) + 1
+    
+    for location, count in location_counts.items():
+        st.write(f"• {location}: {count} bookings")
+    
+    # Export functionality
+    st.markdown("---")
+    st.subheader("📥 Export Data")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        if st.button("Export Filtered Bookings"):
+            try:
+                df = pd.DataFrame(filtered_bookings)
+                csv = df.to_csv(index=False)
+                st.download_button(
+                    label="Download CSV",
+                    data=csv,
+                    file_name=f"bookings_report_{start_date}_to_{end_date}.csv",
+                    mime="text/csv"
+                )
+                show_success_message("Export ready for download!")
+            except Exception as e:
+                show_error_message(f"Export failed: {str(e)}")
+    
+    with col2:
+        if st.button("Export All Data"):
+            try:
+                all_data = BookingOperations.get_all_booking_requests(limit=1000)
+                df = pd.DataFrame(all_data)
+                csv = df.to_csv(index=False)
+                st.download_button(
+                    label="Download All Bookings CSV",
+                    data=csv,
+                    file_name=f"all_bookings_{datetime.now().strftime('%Y%m%d')}.csv",
+                    mime="text/csv",
+                    key="download_all"
+                )
+                show_success_message("Full export ready for download!")
+            except Exception as e:
+                show_error_message(f"Export failed: {str(e)}")
+    
+    # Property Management Summary (if available)
+    try:
+        property_summary = PropertyManagementOperations.get_property_dashboard_summary()
+        if property_summary:
+            st.markdown("---")
+            st.subheader("🏠 Property Management Summary")
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Pending Maintenance", property_summary.get('pending_maintenance', 0))
+            with col2:
+                st.metric("Pending Todos", property_summary.get('pending_todos', 0))
+            with col3:
+                st.metric("Property Files", property_summary.get('total_files', 0))
+    except Exception as e:
+        st.info("Property management data not available yet")
     location_counts = {}
     for booking in filtered_bookings:
         if booking.get('lodging_location'):

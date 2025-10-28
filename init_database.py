@@ -15,18 +15,18 @@ def main():
         # Initialize database schema
         print("Creating database tables...")
         initialize_database()
-        print("✅ Database tables created successfully")
+        print("[SUCCESS] Database tables created successfully")
         
         # Seed initial data
         print("Seeding initial lodging data...")
         seed_initial_data()
-        print("✅ Initial data seeded successfully")
+        print("[SUCCESS] Initial data seeded successfully")
         
-        print("\n🎉 Database initialization complete!")
+        print("\nDatabase initialization complete!")
         print("\nYou can now run the application with: streamlit run app.py")
         
     except Exception as e:
-        print(f"❌ Error initializing database: {str(e)}")
+        print(f"[ERROR] Error initializing database: {str(e)}")
         return 1
     
     return 0

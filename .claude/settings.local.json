@@ -3,7 +3,15 @@
     "allow": [
       "Bash(git init:*)",
       "Bash(git remote add:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(python:*)",
+      "Bash(streamlit run:*)",
+      "Bash(pip install:*)",
+      "mcp__filesystem__directory_tree",
+      "Bash(/bashes)",
+      "Bash(findstr:*)"
     ],
     "deny": [],
     "ask": []

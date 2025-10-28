@@ -3,6 +3,7 @@ import os
 from database.models import initialize_database, seed_initial_data
 from pages.booking import show_booking_page
 from pages.staff import show_staff_page
+from utils.styles import inject_custom_css
 
 # Configure Streamlit page
 st.set_page_config(
@@ -23,39 +24,41 @@ def init_database():
 def main():
     """Main application entry point"""
     
+    # Inject custom CSS
+    inject_custom_css()
+    
     # Initialize database
     init_database()
     
-    # Main navigation
+    # Clean sidebar header
     st.sidebar.title("🏔️ Wellspring Mountain")
-    st.sidebar.markdown("---")
+    st.sidebar.caption("Mountain Retreat Management")
     
-    # Navigation menu
+    # Clean navigation menu
     page = st.sidebar.radio(
-        "Select Access Level:",
+        "Choose your access:",
         ["🏠 Public Booking", "🏢 Staff Dashboard"],
         key="main_navigation"
     )
     
-    # Add information section
+    # Modern information section
     with st.sidebar:
         st.markdown("---")
+        
+        # Clean sidebar content without complex HTML
+        st.markdown("---")
+        st.markdown("**About Wellspring Mountain**")
         st.markdown("""
-        ### ℹ️ About
-        
-        **Wellspring Mountain** offers:
-        - 🏠 Refuge (up to 3 months)
-        - 🌿 Respite (up to 3 weeks)  
-        - 👥 Group Retreats
-        
-        Contact us for more information or assistance with your booking.
+        🏠 **Refuge:** Long-term stays (up to 3 months)  
+        🌿 **Respite:** Short stays (up to 3 weeks)  
+        👥 **Retreats:** Group bookings
         """)
         
-        # Contact information (you can customize this)
+        st.markdown("---")
+        st.markdown("**Contact Information**")
         st.markdown("""
-        ### 📞 Contact
-        - **Phone:** (555) 123-4567
-        - **Email:** info@wellspringmountain.org
+        📞 **Phone:** (555) 123-4567  
+        📧 **Email:** info@wellspringmountain.org
         """)
     
     # Route to appropriate page
