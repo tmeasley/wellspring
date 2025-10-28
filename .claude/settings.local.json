@@ -13,7 +13,8 @@
       "Bash(/bashes)",
       "Bash(findstr:*)",
       "Bash(netstat:*)",
-      "Bash(taskkill //F //PID 67520)"
+      "Bash(taskkill //F //PID 67520)",
+      "Bash(sqlite3:*)"
     ],
     "deny": [],
     "ask": []

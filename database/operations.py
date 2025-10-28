@@ -155,7 +155,79 @@ class BookingOperations:
             return success
         finally:
             conn.close()
-    
+
+    @staticmethod
+    @safe_database_operation
+    def assign_room_to_booking(booking_id: int, lodging_unit_id: int) -> bool:
+        """Assign a specific room to a booking request"""
+        if not booking_id or booking_id <= 0:
+            raise ValueError("Invalid booking ID")
+        if not lodging_unit_id or lodging_unit_id <= 0:
+            raise ValueError("Invalid lodging unit ID")
+
+        conn = get_db_connection()
+        try:
+            # Verify the unit exists
+            cursor = conn.execute("SELECT id FROM lodging_units WHERE id = ? AND is_active = 1", (lodging_unit_id,))
+            if not cursor.fetchone():
+                raise ValueError("Invalid or inactive lodging unit")
+
+            # Get booking details for availability check
+            cursor = conn.execute("""
+                SELECT check_in, check_out, guests
+                FROM booking_requests
+                WHERE id = ?
+            """, (booking_id,))
+            booking = cursor.fetchone()
+
+            if not booking:
+                raise ValueError("Booking not found")
+
+            check_in, check_out, guests = booking
+
+            # Check if unit is available for the dates
+            if not BookingOperations.check_availability(lodging_unit_id, check_in, check_out):
+                raise ValueError("Selected unit is not available for these dates")
+
+            # Assign the room
+            cursor = conn.execute("""
+                UPDATE booking_requests
+                SET lodging_unit_id = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            """, (lodging_unit_id, booking_id))
+
+            success = cursor.rowcount > 0
+            conn.commit()
+
+            if success:
+                logging.info(f"Assigned unit {lodging_unit_id} to booking {booking_id}")
+
+            return success
+        finally:
+            conn.close()
+
+    @staticmethod
+    @safe_database_operation
+    def get_active_stays() -> List[Dict]:
+        """Get all currently active stays (confirmed bookings where today is between check-in and check-out)"""
+        conn = get_db_connection()
+        try:
+            query = """
+                SELECT br.*, lu.name as lodging_name, lu.location as lodging_location
+                FROM booking_requests br
+                LEFT JOIN lodging_units lu ON br.lodging_unit_id = lu.id
+                WHERE br.status = 'confirmed'
+                AND date('now') >= br.check_in
+                AND date('now') < br.check_out
+                ORDER BY br.check_in DESC
+            """
+
+            cursor = conn.execute(query)
+            stays = [dict(row) for row in cursor.fetchall()]
+            return stays
+        finally:
+            conn.close()
+
     @staticmethod
     @safe_database_operation
     def check_availability(lodging_unit_id: int, check_in: date, check_out: date) -> bool:

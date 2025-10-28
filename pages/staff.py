@@ -24,14 +24,18 @@ def show_staff_page():
         st.header("📋 Dashboard Menu")
         page = st.radio(
             "Select view:",
-            ["Overview", "Booking Requests", "Manage Bookings", "Availability", "Property Management", "Reports"],
+            ["Overview", "Booking Requests", "Active Stays", "Assign Rooms", "Manage Bookings", "Availability", "Property Management", "Reports"],
             key="staff_page_selection"
         )
-    
+
     if page == "Overview":
         show_overview()
     elif page == "Booking Requests":
         show_booking_requests()
+    elif page == "Active Stays":
+        show_active_stays()
+    elif page == "Assign Rooms":
+        show_room_assignment()
     elif page == "Manage Bookings":
         show_manage_bookings()
     elif page == "Availability":
@@ -352,7 +356,210 @@ def show_availability_management():
                     if not day['available'] and day['booking_info']:
                         info = day['booking_info']
                         st.write(f"Guest: {info.get('guest_name', 'Unknown')} ({info.get('booking_type', 'N/A')})")
-    
+
+
+def show_active_stays():
+    """Show all currently active stays"""
+    st.header("🏠 Active Stays")
+
+    # Get active stays
+    active_stays = BookingOperations.get_active_stays()
+
+    if not active_stays:
+        st.info("No active stays currently. This shows confirmed bookings where guests are currently checked in (today is between check-in and check-out dates).")
+        return
+
+    st.success(f"Currently {len(active_stays)} active {'stay' if len(active_stays) == 1 else 'stays'}")
+
+    # Display each active stay
+    for stay in active_stays:
+        with st.container():
+            st.markdown("---")
+
+            col1, col2, col3 = st.columns([2, 1, 1])
+
+            with col1:
+                st.markdown(f"### {stay['guest_name']}")
+                if stay.get('lodging_name'):
+                    st.markdown(f"📍 **Room:** {stay['lodging_name']} ({stay['lodging_location']})")
+                else:
+                    st.warning("⚠️ No room assigned yet")
+                st.markdown(f"**Type:** {stay['booking_type'].title()}")
+
+            with col2:
+                check_in = datetime.strptime(stay['check_in'], '%Y-%m-%d').date()
+                check_out = datetime.strptime(stay['check_out'], '%Y-%m-%d').date()
+                days_in = (date.today() - check_in).days
+                days_remaining = (check_out - date.today()).days
+
+                st.markdown(f"**Checked in:** {check_in.strftime('%b %d')}")
+                st.markdown(f"**Check out:** {check_out.strftime('%b %d')}")
+                st.markdown(f"**Days in:** {days_in}")
+                st.markdown(f"**Days remaining:** {days_remaining}")
+
+            with col3:
+                st.markdown(f"**Guests:** {stay['guests']}")
+                st.markdown(f"**Email:** {stay['email']}")
+                if stay.get('phone'):
+                    st.markdown(f"**Phone:** {stay['phone']}")
+
+            # Expandable details
+            with st.expander("View Details & Update"):
+                if stay.get('special_requests'):
+                    st.write(f"**Special Requests:** {stay['special_requests']}")
+
+                if stay.get('notes'):
+                    st.write(f"**Notes:** {stay['notes']}")
+
+                # Quick actions
+                col1, col2 = st.columns(2)
+                with col1:
+                    if st.button(f"End Stay Early", key=f"cancel_{stay['id']}"):
+                        if BookingOperations.update_booking_status(stay['id'], 'cancelled', "Stay ended early by staff"):
+                            st.success("Stay ended")
+                            st.rerun()
+
+                with col2:
+                    new_notes = st.text_area("Add/Update Notes:", value=stay.get('notes', ''), key=f"notes_{stay['id']}")
+                    if st.button(f"Update Notes", key=f"update_notes_{stay['id']}"):
+                        if BookingOperations.update_booking_status(stay['id'], 'confirmed', new_notes):
+                            st.success("Notes updated")
+                            st.rerun()
+
+
+def show_room_assignment():
+    """Interface for assigning rooms to pending booking requests"""
+    st.header("🔑 Assign Rooms to Inquiries")
+
+    st.info("This page allows you to assign specific rooms to pending booking inquiries. Remember: staff always assigns rooms, guests never self-book.")
+
+    # Get pending bookings (inquiries without room assignments)
+    pending_bookings = BookingOperations.get_all_booking_requests(status='pending')
+
+    if not pending_bookings:
+        st.success("✅ No pending inquiries need room assignment!")
+        st.info("All current inquiries either have rooms assigned or are not yet confirmed. Check 'Booking Requests' to review and confirm pending inquiries.")
+        return
+
+    # Filter to show only those without room assignment
+    unassigned = [b for b in pending_bookings if not b.get('lodging_unit_id')]
+    assigned_pending = [b for b in pending_bookings if b.get('lodging_unit_id')]
+
+    if unassigned:
+        st.warning(f"⏳ {len(unassigned)} {'inquiry needs' if len(unassigned) == 1 else 'inquiries need'} room assignment")
+
+        for booking in unassigned:
+            with st.container():
+                st.markdown("---")
+
+                col1, col2 = st.columns([2, 1])
+
+                with col1:
+                    st.markdown(f"### {booking['guest_name']}")
+                    check_in = datetime.strptime(booking['check_in'], '%Y-%m-%d').date()
+                    check_out = datetime.strptime(booking['check_out'], '%Y-%m-%d').date()
+                    st.markdown(f"**Dates:** {format_date_range(check_in, check_out)}")
+                    st.markdown(f"**Type:** {booking['booking_type'].title()}")
+                    st.markdown(f"**Guests:** {booking['guests']}")
+
+                with col2:
+                    st.markdown(f"**Email:** {booking['email']}")
+                    if booking.get('phone'):
+                        st.markdown(f"**Phone:** {booking['phone']}")
+                    st.markdown(f"**Created:** {booking['created_at'][:10]}")
+
+                # Show special requests if any
+                if booking.get('special_requests'):
+                    st.info(f"**Special Requests:** {booking['special_requests']}")
+
+                # Get available units for these dates
+                available_units = BookingOperations.get_available_units(
+                    check_in,
+                    check_out,
+                    booking['guests']
+                )
+
+                if not available_units:
+                    st.error("❌ No available accommodations for these dates and guest count")
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        if st.button(f"Contact Guest", key=f"contact_{booking['id']}"):
+                            st.info(f"Contact {booking['guest_name']} at {booking['email']}")
+                    with col2:
+                        if st.button(f"Reject Inquiry", key=f"reject_assign_{booking['id']}"):
+                            if BookingOperations.update_booking_status(booking['id'], 'rejected', "No availability for requested dates"):
+                                st.warning("Inquiry rejected")
+                                st.rerun()
+                else:
+                    st.success(f"✅ {len(available_units)} available accommodations found")
+
+                    # Group by location for easier selection
+                    locations = {}
+                    for unit in available_units:
+                        location = unit['location']
+                        if location not in locations:
+                            locations[location] = []
+                        locations[location].append(unit)
+
+                    # Room selection
+                    selected_unit_id = None
+
+                    for location, units in locations.items():
+                        st.markdown(f"**{get_location_emoji(location)} {location}**")
+
+                        for unit in units:
+                            col1, col2, col3 = st.columns([2, 1, 1])
+
+                            with col1:
+                                st.write(f"• {unit['name']}")
+                                if unit.get('description'):
+                                    st.caption(unit['description'])
+
+                            with col2:
+                                st.write(f"Capacity: {unit['capacity']}")
+
+                            with col3:
+                                if st.button(f"Assign", key=f"assign_{booking['id']}_{unit['id']}"):
+                                    try:
+                                        if BookingOperations.assign_room_to_booking(booking['id'], unit['id']):
+                                            st.success(f"✅ Assigned {unit['name']} to {booking['guest_name']}")
+                                            st.balloons()
+                                            st.rerun()
+                                    except ValueError as e:
+                                        st.error(f"Failed to assign room: {str(e)}")
+
+    if assigned_pending:
+        st.markdown("---")
+        st.subheader("📋 Pending Inquiries with Rooms Assigned")
+        st.info(f"{len(assigned_pending)} {'inquiry has' if len(assigned_pending) == 1 else 'inquiries have'} rooms assigned and awaiting confirmation")
+
+        for booking in assigned_pending:
+            with st.expander(f"{booking['guest_name']} - {booking.get('lodging_name', 'Unknown')}"):
+                col1, col2 = st.columns(2)
+
+                with col1:
+                    st.write(f"**Room:** {booking.get('lodging_name', 'Unknown')} ({booking.get('lodging_location', 'Unknown')})")
+                    st.write(f"**Dates:** {booking['check_in']} to {booking['check_out']}")
+                    st.write(f"**Guests:** {booking['guests']}")
+
+                with col2:
+                    st.write(f"**Email:** {booking['email']}")
+                    if booking.get('phone'):
+                        st.write(f"**Phone:** {booking['phone']}")
+
+                col1, col2 = st.columns(2)
+                with col1:
+                    if st.button(f"✅ Confirm Booking", key=f"confirm_assign_{booking['id']}"):
+                        if BookingOperations.update_booking_status(booking['id'], 'confirmed'):
+                            st.success("Booking confirmed!")
+                            st.rerun()
+
+                with col2:
+                    if st.button(f"Change Room", key=f"change_{booking['id']}"):
+                        # Clear the assignment to allow re-assignment
+                        if BookingOperations.assign_room_to_booking(booking['id'], booking['lodging_unit_id']):
+                            st.info("You can now assign a different room above")
+
 
 def show_reports():
     """Show various reports"""
