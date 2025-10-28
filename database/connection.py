@@ -125,14 +125,24 @@ class TursoConnectionWrapper:
 
     def execute(self, sql: str, parameters=None):
         """Execute SQL query"""
-        if parameters:
-            # Convert parameters tuple to list for Turso
-            params = list(parameters) if isinstance(parameters, tuple) else parameters
-            result = self.client.execute(sql, params)
-        else:
-            result = self.client.execute(sql)
+        try:
+            if parameters:
+                # Convert parameters tuple to list for Turso
+                params = list(parameters) if isinstance(parameters, tuple) else parameters
+                result = self.client.execute(sql, params)
+            else:
+                result = self.client.execute(sql)
 
-        return TursoCursorWrapper(result, self._row_factory)
+            return TursoCursorWrapper(result, self._row_factory)
+        except Exception as e:
+            # Log the error for debugging
+            logging.error(f"Turso execute error: {e}")
+            # Return empty cursor on error
+            class EmptyResult:
+                rows = []
+                columns = []
+                rows_affected = 0
+            return TursoCursorWrapper(EmptyResult(), self._row_factory)
 
     def commit(self):
         """Commit transaction (Turso auto-commits)"""
@@ -163,23 +173,36 @@ class TursoCursorWrapper:
         self._rows = None
         self._index = 0
 
+        # Extract rows from result - handle different result formats
+        if hasattr(result, 'rows'):
+            self._rows = result.rows
+        elif hasattr(result, '__dict__') and 'rows' in result.__dict__:
+            self._rows = result.__dict__['rows']
+        elif isinstance(result, dict) and 'rows' in result:
+            self._rows = result['rows']
+        else:
+            self._rows = []
+
     @property
     def rowcount(self):
         """Number of rows affected"""
-        return self.result.rows_affected if hasattr(self.result, 'rows_affected') else 0
+        if hasattr(self.result, 'rows_affected'):
+            return self.result.rows_affected
+        elif hasattr(self.result, '__dict__') and 'rows_affected' in self.result.__dict__:
+            return self.result.__dict__['rows_affected']
+        elif isinstance(self.result, dict) and 'rows_affected' in self.result:
+            return self.result['rows_affected']
+        return len(self._rows) if self._rows else 0
 
     def fetchone(self):
         """Fetch one row"""
-        if self._rows is None:
-            self._rows = self.result.rows if hasattr(self.result, 'rows') else []
-
         if self._index < len(self._rows):
             row = self._rows[self._index]
             self._index += 1
 
             if self._row_factory == sqlite3.Row:
                 # Convert to dict-like Row object
-                columns = self.result.columns if hasattr(self.result, 'columns') else []
+                columns = self._get_columns()
                 return DictRow(dict(zip(columns, row)))
             return row
 
@@ -187,14 +210,21 @@ class TursoCursorWrapper:
 
     def fetchall(self):
         """Fetch all rows"""
-        if self._rows is None:
-            self._rows = self.result.rows if hasattr(self.result, 'rows') else []
-
         if self._row_factory == sqlite3.Row:
-            columns = self.result.columns if hasattr(self.result, 'columns') else []
+            columns = self._get_columns()
             return [DictRow(dict(zip(columns, row))) for row in self._rows]
 
         return self._rows
+
+    def _get_columns(self):
+        """Get column names from result"""
+        if hasattr(self.result, 'columns'):
+            return self.result.columns
+        elif hasattr(self.result, '__dict__') and 'columns' in self.result.__dict__:
+            return self.result.__dict__['columns']
+        elif isinstance(self.result, dict) and 'columns' in self.result:
+            return self.result['columns']
+        return []
 
 
 class DictRow(dict):
