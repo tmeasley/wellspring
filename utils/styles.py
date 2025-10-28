@@ -295,13 +295,30 @@ def inject_custom_css():
     
     /* Modern form styling */
     .stTextInput > div > div > input,
-    .stTextArea > div > div > textarea,
-    .stSelectbox > div > div > div {
+    .stTextArea > div > div > textarea {
         border-radius: 8px !important;
         border: 2px solid #EBEBEB !important;
         padding: 12px 16px !important;
         font-size: 16px !important;
         transition: all 0.2s ease !important;
+    }
+
+    /* Selectbox input field - make taller to show full text */
+    .stSelectbox > div > div > div {
+        border-radius: 8px !important;
+        border: 2px solid #EBEBEB !important;
+        padding: 12px 16px !important;
+        font-size: 16px !important;
+        min-height: 56px !important;
+        line-height: 1.6 !important;
+        transition: all 0.2s ease !important;
+    }
+
+    /* Selected value text */
+    .stSelectbox [data-baseweb="select"] [data-baseweb="select-value"] {
+        font-size: 16px !important;
+        line-height: 1.6 !important;
+        padding: 4px 0 !important;
     }
 
     /* Increase dropdown menu height */
@@ -314,7 +331,7 @@ def inject_custom_css():
     }
 
     .stSelectbox [data-baseweb="select"] > div {
-        max-height: 500px !important;
+        max-height: none !important;
     }
 
     /* Make individual dropdown items taller and more readable */
@@ -323,6 +340,8 @@ def inject_custom_css():
         padding: 12px 16px !important;
         font-size: 16px !important;
         line-height: 1.5 !important;
+        white-space: normal !important;
+        word-wrap: break-word !important;
     }
     
     .stTextInput > div > div > input:focus,
