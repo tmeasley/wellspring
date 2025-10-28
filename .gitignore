@@ -1,9 +1,10 @@
 # Environment variables
 .env
 
-# Database
-*.db
-wellspring_bookings.db
+# Database - REMOVED for web deployment
+# The database needs to be in git for Streamlit Cloud persistence
+# NOTE: This means booking data will be in your GitHub repo
+# Keep your repo PRIVATE to protect guest data
 
 # Python
 __pycache__/
