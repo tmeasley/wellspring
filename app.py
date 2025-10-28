@@ -23,23 +23,52 @@ def init_database():
 
 def main():
     """Main application entry point"""
-    
+
     # Inject custom CSS
     inject_custom_css()
-    
+
     # Initialize database
     init_database()
-    
-    # Clean sidebar header
+
+    # Mobile-friendly navigation at top of page (always visible)
+    st.title("🏔️ Wellspring Mountain")
+    st.caption("Mountain Retreat Management")
+
+    # Main navigation - visible on all devices
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("🏠 Public Booking", use_container_width=True, type="primary" if st.session_state.get('page', 'public') == 'public' else "secondary"):
+            st.session_state.page = 'public'
+            st.rerun()
+    with col2:
+        if st.button("🏢 Staff Dashboard", use_container_width=True, type="primary" if st.session_state.get('page', 'public') == 'staff' else "secondary"):
+            st.session_state.page = 'staff'
+            st.rerun()
+
+    st.markdown("---")
+
+    # Get current page
+    page = st.session_state.get('page', 'public')
+
+    # Also keep sidebar navigation for desktop
     st.sidebar.title("🏔️ Wellspring Mountain")
     st.sidebar.caption("Mountain Retreat Management")
-    
-    # Clean navigation menu
-    page = st.sidebar.radio(
+
+    # Sidebar navigation (for desktop)
+    sidebar_page = st.sidebar.radio(
         "Choose your access:",
         ["🏠 Public Booking", "🏢 Staff Dashboard"],
-        key="main_navigation"
+        index=0 if page == 'public' else 1,
+        key="sidebar_navigation"
     )
+
+    # Sync sidebar selection with main navigation
+    if sidebar_page == "🏠 Public Booking" and page != 'public':
+        st.session_state.page = 'public'
+        st.rerun()
+    elif sidebar_page == "🏢 Staff Dashboard" and page != 'staff':
+        st.session_state.page = 'staff'
+        st.rerun()
     
     # Modern information section
     with st.sidebar:
@@ -61,11 +90,11 @@ def main():
         📧 **Email:** SpringMountainWellness@proton.me
         """)
     
-    # Route to appropriate page
-    if page == "🏠 Public Booking":
-        show_booking_page()
-    elif page == "🏢 Staff Dashboard":
+    # Route to appropriate page based on session state
+    if page == 'staff':
         show_staff_page()
+    else:
+        show_booking_page()
 
 if __name__ == "__main__":
     main()

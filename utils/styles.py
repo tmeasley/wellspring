@@ -443,6 +443,51 @@ def inject_custom_css():
         padding-bottom: 2rem;
         max-width: 1200px;
     }
+
+    /* Mobile navigation buttons */
+    .stButton > button {
+        height: 60px !important;
+        font-size: 18px !important;
+        font-weight: 600 !important;
+        border-radius: 12px !important;
+        transition: all 0.2s ease !important;
+    }
+
+    /* Mobile-friendly responsive design */
+    @media (max-width: 768px) {
+        .main .block-container {
+            padding-top: 1rem;
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+
+        h1 {
+            font-size: 24px !important;
+        }
+
+        .stButton > button {
+            height: 56px !important;
+            font-size: 16px !important;
+        }
+
+        /* Make columns stack on mobile */
+        .row-widget.stHorizontal {
+            flex-direction: column !important;
+        }
+    }
+
+    /* Ensure sidebar is accessible on mobile */
+    @media (max-width: 768px) {
+        [data-testid="stSidebar"] {
+            display: block !important;
+        }
+
+        /* Make sure hamburger menu is visible */
+        [data-testid="collapsedControl"] {
+            display: block !important;
+            z-index: 999999 !important;
+        }
+    }
     </style>
     """, unsafe_allow_html=True)
 
