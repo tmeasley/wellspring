@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  wellspring-booking:
+    build: .
+    container_name: wellspring-mountain-booking
+    ports:
+      - "8501:8501"
+    environment:
+      - PUBLIC_PASSWORD=${PUBLIC_PASSWORD:-public123}
+      - STAFF_PASSWORD=${STAFF_PASSWORD:-staff123}
+      - DATABASE_PATH=/app/data/wellspring_bookings.db
+      - DEBUG_MODE=false
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
