@@ -144,6 +144,36 @@ class TursoConnectionWrapper:
                 rows_affected = 0
             return TursoCursorWrapper(EmptyResult(), self._row_factory)
 
+    def executemany(self, sql: str, seq_of_parameters):
+        """Execute SQL query multiple times with different parameters"""
+        try:
+            total_affected = 0
+            for parameters in seq_of_parameters:
+                # Convert parameters tuple to list for Turso
+                params = list(parameters) if isinstance(parameters, tuple) else parameters
+                result = self.client.execute(sql, params)
+                # Track rows affected
+                if hasattr(result, 'rows_affected'):
+                    total_affected += result.rows_affected
+                elif hasattr(result, '__dict__') and 'rows_affected' in result.__dict__:
+                    total_affected += result.__dict__['rows_affected']
+
+            # Return a cursor with the total rows affected
+            class BatchResult:
+                rows = []
+                columns = []
+                rows_affected = total_affected
+
+            return TursoCursorWrapper(BatchResult(), self._row_factory)
+        except Exception as e:
+            logging.error(f"Turso executemany error: {e}")
+            # Return empty cursor on error
+            class EmptyResult:
+                rows = []
+                columns = []
+                rows_affected = 0
+            return TursoCursorWrapper(EmptyResult(), self._row_factory)
+
     def commit(self):
         """Commit transaction (Turso auto-commits)"""
         pass

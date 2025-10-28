@@ -173,12 +173,19 @@ def initialize_database():
 def seed_initial_data():
     """Add initial lodging units to the database"""
     conn = get_db_connection()
-    
+
     # Check if data already exists
-    cursor = conn.execute("SELECT COUNT(*) FROM lodging_units")
-    if cursor.fetchone()[0] > 0:
-        conn.close()
-        return  # Data already seeded
+    try:
+        cursor = conn.execute("SELECT COUNT(*) FROM lodging_units")
+        row = cursor.fetchone()
+        count = row[0] if row else 0
+        if count > 0:
+            conn.close()
+            return  # Data already seeded
+    except Exception as e:
+        # If check fails, log and continue to seed
+        import logging
+        logging.warning(f"Could not check if data exists: {e}")
     
     # Lodge accommodations
     lodge_units = [
