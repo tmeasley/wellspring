@@ -303,6 +303,27 @@ def inject_custom_css():
         font-size: 16px !important;
         transition: all 0.2s ease !important;
     }
+
+    /* Increase dropdown menu height */
+    .stSelectbox [data-baseweb="popover"] {
+        max-height: 500px !important;
+    }
+
+    .stSelectbox [role="listbox"] {
+        max-height: 500px !important;
+    }
+
+    .stSelectbox [data-baseweb="select"] > div {
+        max-height: 500px !important;
+    }
+
+    /* Make individual dropdown items taller and more readable */
+    .stSelectbox [role="option"] {
+        min-height: 48px !important;
+        padding: 12px 16px !important;
+        font-size: 16px !important;
+        line-height: 1.5 !important;
+    }
     
     .stTextInput > div > div > input:focus,
     .stTextArea > div > div > textarea:focus,
