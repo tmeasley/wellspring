@@ -1,8 +1,7 @@
 import streamlit as st
 from datetime import datetime, date, timedelta
-from utils.auth import require_auth, create_logout_button
 from utils.helpers import (
-    validate_email, validate_phone, calculate_duration, 
+    validate_email, validate_phone, calculate_duration,
     validate_booking_duration, get_booking_type_info,
     display_lodging_unit_card, get_location_emoji,
     validate_guest_count, sanitize_input, validate_date_range,
@@ -12,9 +11,8 @@ from utils.styles import show_success_message, show_error_message
 from database.operations import BookingOperations
 
 def show_booking_page():
-    """Main booking page for public users"""
-    require_auth("public")
-    create_logout_button("public")
+    """Main booking page for public users - NO password required"""
+    # Public booking is now open to everyone - no authentication needed
     
     # Clean hero section using Streamlit components
     st.title("🏔️ Wellspring Mountain Booking")
