@@ -16,17 +16,48 @@ def show_staff_page():
     """Main staff dashboard"""
     require_auth("staff")
     create_logout_button("staff")
-    
+
     st.title("🏢 Staff Dashboard - Wellspring Mountain")
-    
-    # Sidebar navigation
+
+    # Mobile-friendly navigation (always visible at top)
+    st.markdown("### 📋 Quick Navigation")
+
+    # Get current page from session state
+    if 'staff_page' not in st.session_state:
+        st.session_state.staff_page = "Overview"
+
+    # Create mobile-friendly tabs/selectbox
+    mobile_page = st.selectbox(
+        "Choose a view:",
+        ["Overview", "Booking Requests", "Active Stays", "Assign Rooms", "Manage Bookings", "Availability", "Property Management", "Reports"],
+        index=["Overview", "Booking Requests", "Active Stays", "Assign Rooms", "Manage Bookings", "Availability", "Property Management", "Reports"].index(st.session_state.staff_page),
+        key="mobile_staff_nav"
+    )
+
+    # Update session state if selection changed
+    if mobile_page != st.session_state.staff_page:
+        st.session_state.staff_page = mobile_page
+        st.rerun()
+
+    st.markdown("---")
+
+    # Sidebar navigation (for desktop)
     with st.sidebar:
         st.header("📋 Dashboard Menu")
-        page = st.radio(
+        sidebar_page = st.radio(
             "Select view:",
             ["Overview", "Booking Requests", "Active Stays", "Assign Rooms", "Manage Bookings", "Availability", "Property Management", "Reports"],
+            index=["Overview", "Booking Requests", "Active Stays", "Assign Rooms", "Manage Bookings", "Availability", "Property Management", "Reports"].index(st.session_state.staff_page),
             key="staff_page_selection"
         )
+
+        # Sync sidebar with mobile navigation
+        if sidebar_page != st.session_state.staff_page:
+            st.session_state.staff_page = sidebar_page
+            st.rerun()
+
+    # Use the session state page
+    page = st.session_state.staff_page
 
     if page == "Overview":
         show_overview()

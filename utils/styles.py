@@ -453,6 +453,20 @@ def inject_custom_css():
         transition: all 0.2s ease !important;
     }
 
+    /* Mobile navigation selectbox - make it prominent */
+    .stSelectbox {
+        background: white;
+        border-radius: 12px;
+        padding: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .stSelectbox label {
+        font-size: 16px !important;
+        font-weight: 600 !important;
+        color: #222222 !important;
+    }
+
     /* Mobile-friendly responsive design */
     @media (max-width: 768px) {
         .main .block-container {
