@@ -328,44 +328,50 @@ def show_lodging_selection():
 
 def show_confirmation():
     """Step 5: Confirmation and submission"""
-    st.header("Step 5: Confirm your booking request")
-    
+    st.header("Step 5: Submit Your Inquiry")
+
+    st.info("📝 **This is an inquiry, not a reservation.** Staff will review your request and contact you to discuss your needs and assign appropriate accommodation.")
+
     # Display complete booking summary
     booking_type_info = get_booking_type_info()[st.session_state.booking_type]
-    
+
     st.markdown(f"""
-    ### 📋 Booking Summary
-    
-    **Guest Information:**
+    ### 📋 Inquiry Summary
+
+    **Your Information:**
     - Name: {st.session_state.guest_name}
     - Email: {st.session_state.email}
     - Phone: {st.session_state.get('phone', 'Not provided')}
     - Organization: {st.session_state.get('organization', 'Not provided')}
-    
-    **Stay Details:**
+
+    **Requested Stay:**
     - Type: {booking_type_info['title']}
-    - Check-in: {st.session_state.check_in.strftime('%B %d, %Y')}
-    - Check-out: {st.session_state.check_out.strftime('%B %d, %Y')}
+    - Preferred Check-in: {st.session_state.check_in.strftime('%B %d, %Y')}
+    - Preferred Check-out: {st.session_state.check_out.strftime('%B %d, %Y')}
     - Duration: {calculate_duration(st.session_state.check_in, st.session_state.check_out)} days
-    - Guests: {st.session_state.guests}
-    
-    **Accommodation:**
-    {f"- {st.session_state.selected_unit['name']} ({st.session_state.selected_unit['location']})" if st.session_state.get('selected_unit') else "- Staff will assign best available option"}
-    
+    - Number of Guests: {st.session_state.guests}
+
+    **Your Preferences:**
+    {f"- Preferred accommodation: {st.session_state.selected_unit['name']} ({st.session_state.selected_unit['location']})" if st.session_state.get('selected_unit') else "- No specific preference - staff will assign best fit"}
+
     **Special Requests:**
     {st.session_state.get('special_requests', 'None')}
-    
-    **Additional Notes:**
+
+    **Additional Information:**
     {st.session_state.get('notes', 'None')}
     """)
-    
+
     with st.container():
-        st.markdown("### What happens next?")
+        st.markdown("### 📞 Next Steps:")
         st.markdown("""
-        • We'll review your booking request  
-        • A staff member will contact you within 24-48 hours  
-        • We'll discuss your needs and confirm availability  
-        • Once confirmed, you'll receive booking details and check-in instructions
+        1. **We review your inquiry** - Staff will check availability and suitability
+        2. **Staff contacts you** - Within 1-2 business days via email or phone
+        3. **Discussion** - We'll talk about your needs and ensure we're a good fit
+        4. **Room assignment** - Staff will assign appropriate accommodation
+        5. **Confirmation** - You'll receive details and any required agreements
+        6. **Check-in instructions** - Arrival information and what to expect
+
+        **Note:** Room assignments are always made by staff to ensure the best fit for your needs.
         """)
     
     col1, col2 = st.columns(2)
@@ -376,7 +382,10 @@ def show_confirmation():
             st.rerun()
     
     with col2:
-        if st.button("Submit Booking Request", type="primary"):
+        # Placeholder for future guest agreement form
+        st.warning("🔜 **Coming Soon**: Guest agreement form will be required before submission")
+
+        if st.button("Submit Inquiry", type="primary"):
             # Create booking request
             booking_data = {
                 'guest_name': st.session_state.guest_name,

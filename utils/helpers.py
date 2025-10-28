@@ -290,16 +290,15 @@ def create_visual_calendar(availability_df: pd.DataFrame, selected_location: str
     """)
 
 def format_booking_status(status: str) -> str:
-    """Format booking status with colors"""
-    status_colors = {
-        'pending': '#FFA726',
-        'confirmed': '#4CAF50', 
-        'cancelled': '#F44336',
-        'rejected': '#9E9E9E'
+    """Format booking status with emoji (no HTML)"""
+    status_map = {
+        'pending': '⏳ PENDING',
+        'confirmed': '✅ CONFIRMED',
+        'cancelled': '❌ CANCELLED',
+        'rejected': '🚫 REJECTED'
     }
-    
-    color = status_colors.get(status, '#9E9E9E')
-    return f'<span style="color: {color}; font-weight: bold;">{status.upper()}</span>'
+
+    return status_map.get(status.lower(), status.upper())
 
 def get_location_emoji(location: str) -> str:
     """Get emoji for location"""
