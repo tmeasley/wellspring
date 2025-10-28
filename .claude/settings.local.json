@@ -14,7 +14,8 @@
       "Bash(findstr:*)",
       "Bash(netstat:*)",
       "Bash(taskkill //F //PID 67520)",
-      "Bash(sqlite3:*)"
+      "Bash(sqlite3:*)",
+      "Bash(if exist nul del /F /Q nul)"
     ],
     "deny": [],
     "ask": []
