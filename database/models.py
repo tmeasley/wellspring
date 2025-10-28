@@ -2,14 +2,10 @@ import sqlite3
 import os
 from datetime import datetime
 from typing import List, Dict, Optional
+from database.connection import get_db_connection
 
+# Keep DATABASE_PATH for backwards compatibility
 DATABASE_PATH = "wellspring_bookings.db"
-
-def get_db_connection():
-    """Create and return database connection"""
-    conn = sqlite3.connect(DATABASE_PATH)
-    conn.row_factory = sqlite3.Row  # Enable dict-like access to rows
-    return conn
 
 def initialize_database():
     """Create database tables if they don't exist"""
