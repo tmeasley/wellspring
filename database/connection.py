@@ -129,6 +129,8 @@ class TursoConnectionWrapper:
             if parameters:
                 # Convert parameters tuple to list for Turso
                 params = list(parameters) if isinstance(parameters, tuple) else parameters
+                # Convert datetime objects to strings for Turso
+                params = self._convert_params(params)
                 result = self.client.execute(sql, params)
             else:
                 result = self.client.execute(sql)
@@ -144,6 +146,22 @@ class TursoConnectionWrapper:
                 rows_affected = 0
             return TursoCursorWrapper(EmptyResult(), self._row_factory)
 
+    def _convert_params(self, params):
+        """Convert Python types to Turso-compatible types"""
+        from datetime import datetime, date
+
+        converted = []
+        for param in params:
+            if isinstance(param, datetime):
+                # Convert datetime to ISO format string
+                converted.append(param.isoformat())
+            elif isinstance(param, date):
+                # Convert date to ISO format string (YYYY-MM-DD)
+                converted.append(param.isoformat())
+            else:
+                converted.append(param)
+        return converted
+
     def executemany(self, sql: str, seq_of_parameters):
         """Execute SQL query multiple times with different parameters"""
         try:
@@ -151,6 +169,8 @@ class TursoConnectionWrapper:
             for parameters in seq_of_parameters:
                 # Convert parameters tuple to list for Turso
                 params = list(parameters) if isinstance(parameters, tuple) else parameters
+                # Convert datetime objects to strings for Turso
+                params = self._convert_params(params)
                 result = self.client.execute(sql, params)
                 # Track rows affected
                 if hasattr(result, 'rows_affected'):
