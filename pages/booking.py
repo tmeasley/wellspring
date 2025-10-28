@@ -77,8 +77,12 @@ def show_booking_type_selection():
                 st.caption(info['description'])
 
                 # Duration info
-                duration_text = f"Max: {info['max_duration']} days" if info['max_duration'] else "Flexible duration"
+                duration_text = f"Max: {info['max_duration']} days" if info['max_duration'] else "Contact us for details"
                 st.info(duration_text)
+
+                # Expandable full description
+                with st.expander("Learn More"):
+                    st.markdown(info.get('full_description', info['description']))
 
             # Button
             if st.button(f"Choose {title}", key=f"select_{key}", use_container_width=True):

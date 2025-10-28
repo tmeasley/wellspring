@@ -76,23 +76,103 @@ def format_date_range(check_in: date, check_out: date) -> str:
     return f"{check_in.strftime('%b %d, %Y')} - {check_out.strftime('%b %d, %Y')} ({nights} {night_text})"
 
 def get_booking_type_info() -> Dict[str, Dict]:
-    """Get information about different booking types"""
+    """Get information about different booking types with full descriptions"""
     return {
-        "refuge": {
-            "title": "🏠 Refuge",
-            "description": "Longer-term stays up to 3 months for those seeking temporary housing",
-            "max_duration": 90,
-            "color": "#4CAF50"
-        },
         "respite": {
-            "title": "🌿 Respite", 
-            "description": "Short-term stays up to 3 weeks for rest and recovery",
+            "title": "🌿 Respite",
+            "description": "A free nature-based refuge where you get a private room, access to a shared kitchen, trails, and a peaceful mountain setting for 3 days to 3 weeks.",
+            "full_description": """
+**What We Provide:**
+- Private room in peaceful mountain setting
+- Access to shared kitchen
+- Trails and natural spaces
+- One staff person on-site for logistics and practical needs
+- Optional community activities (garden projects, crafts)
+- Transportation help for trips to town
+
+**What This Is:**
+Space and time to direct your own healing and recovery. Other guests are around if you want company, but you control your own schedule and activities.
+
+**What This Is NOT:**
+- Not a peer respite with trained support staff
+- We don't provide meals or structured activities
+- Not therapeutic support or crisis intervention
+- Staff keep things running smoothly but don't provide counseling
+
+**Who This Works For:**
+People dealing with burnout, depression, grief, life transitions, or needing space away from regular circumstances who can:
+- Feed yourself and manage your own meals
+- Take care of basic self-care needs
+- Manage your own medications
+- Ask for help when you need something practical
+
+**Not Right If:**
+You're in acute crisis and need active support (though we're working toward offering true peer respite in the future).
+
+After submitting your inquiry, staff will connect with you to ensure we're a good fit.
+            """,
             "max_duration": 21,
             "color": "#2196F3"
         },
+        "refuge": {
+            "title": "🏠 Refuge",
+            "description": "Free temporary refuge for up to 3 months for those displaced by natural disasters or emergencies.",
+            "full_description": """
+**When Disaster Strikes:**
+Wildfire, flood, hurricane, evacuation - you need a place to land while you figure out your next steps. We offer free temporary refuge in the North Carolina mountains.
+
+**What We Provide:**
+- Cabins with electricity (shower house nearby - no bathroom/water in cabins)
+- Camping areas (no RV hookups available)
+- Access to shared kitchen facilities
+- One staff person on-site for practical support
+- Time and space to plan your next move
+
+**What You Need:**
+- Working vehicle (we're rural - you'll need transportation for supplies, work, appointments)
+- Ability to manage in rustic conditions
+- Handle your own food/cooking
+- Basic self-sufficiency
+
+**Who This Is For:**
+Individuals and families displaced by natural disasters, climate events, or other emergencies who need temporary housing while they rebuild, relocate, or sort out longer-term plans.
+
+**This Is:**
+Crisis infrastructure - a bridge between losing your home and finding your footing again.
+
+After submitting your inquiry, staff will connect with you to make sure we're a good fit and answer questions about the space.
+            """,
+            "max_duration": 90,
+            "color": "#4CAF50"
+        },
         "retreat": {
             "title": "👥 Retreat",
-            "description": "Group bookings for nonprofits, corporations, and organizations",
+            "description": "Mountain property rentals for weekend to week-long retreats for nonprofits, corporations, and organizations.",
+            "full_description": """
+**Group Bookings:**
+We offer our mountain property for retreats that bring teams and communities together away from daily distractions.
+
+**What We Provide:**
+- Lodging in our cabins and facilities
+- Meal service
+- Meeting and gathering spaces
+- Access to trails, gardens, and natural setting
+- Support staff to help your retreat run smoothly
+
+**Who This Is For:**
+Organizations looking for a peaceful mountain setting for:
+- Team retreats
+- Strategic planning sessions
+- Training intensives
+- Community gatherings
+- Nonprofit events
+- Corporate off-sites
+
+**Pricing & Availability:**
+Contact us to discuss your group's specific needs, capacity requirements, dates, and pricing.
+
+After submitting your inquiry, staff will work with you to plan the perfect retreat for your organization.
+            """,
             "max_duration": None,
             "color": "#FF9800"
         }
