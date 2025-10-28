@@ -18,62 +18,31 @@ def show_booking_page():
     
     # Clean hero section using Streamlit components
     st.title("🏔️ Wellspring Mountain Booking")
-    st.markdown(
-        "<p style='text-align: center; color: #717171; font-size: 18px; margin-bottom: 32px;'>" +
-        "Find your perfect stay in our mountain retreat</p>", 
-        unsafe_allow_html=True
-    )
-    
+    st.caption("Find your perfect stay in our mountain retreat")
+
+    st.divider()
+
     # Initialize session state for multi-step form
     if 'booking_step' not in st.session_state:
         st.session_state.booking_step = 1
-    
-    # Modern breadcrumb navigation
+
+    # Simple step indicator using native Streamlit
     steps = ["Type", "Dates", "Details", "Room", "Confirm"]
     current_step = st.session_state.booking_step
-    
-    breadcrumb_html = "<div style='display: flex; justify-content: center; align-items: center; margin: 24px 0;'>"
-    
+
+    # Show progress using columns
+    step_cols = st.columns(len(steps))
     for i, step in enumerate(steps):
         step_num = i + 1
-        is_current = step_num == current_step
-        is_completed = step_num < current_step
-        
-        # Step circle
-        if is_completed:
-            circle_style = "background: #00A400; color: white;"
-            icon = "✓"
-        elif is_current:
-            circle_style = "background: #FF385C; color: white;"
-            icon = str(step_num)
-        else:
-            circle_style = "background: #F7F7F7; color: #717171;"
-            icon = str(step_num)
-        
-        breadcrumb_html += f"""
-        <div style="display: flex; flex-direction: column; align-items: center; margin: 0 16px;">
-            <div style="
-                width: 40px; height: 40px; border-radius: 50%; 
-                display: flex; align-items: center; justify-content: center;
-                font-weight: 600; font-size: 14px; {circle_style}
-                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            ">{icon}</div>
-            <span style="font-size: 12px; color: {'#222222' if is_current else '#717171'}; 
-                        font-weight: {'600' if is_current else '400'}; margin-top: 8px;">
-                {step}
-            </span>
-        </div>
-        """
-        
-        # Add connector line (except for last step)
-        if i < len(steps) - 1:
-            line_color = "#00A400" if step_num < current_step else "#EBEBEB"
-            breadcrumb_html += f"""
-            <div style="flex: 1; height: 2px; background: {line_color}; margin: 0 8px; margin-top: -16px;"></div>
-            """
-    
-    breadcrumb_html += "</div>"
-    st.markdown(breadcrumb_html, unsafe_allow_html=True)
+        with step_cols[i]:
+            if step_num < current_step:
+                st.success(f"✓ {step}")
+            elif step_num == current_step:
+                st.info(f"**→ {step}**")
+            else:
+                st.caption(f"{step_num}. {step}")
+
+    st.divider()
     
     if st.session_state.booking_step == 1:
         show_booking_type_selection()
@@ -87,38 +56,32 @@ def show_booking_page():
         show_confirmation()
 
 def show_booking_type_selection():
-    """Step 1: Booking type selection with consistent sizing"""
+    """Step 1: Booking type selection with clean Streamlit components"""
     st.header("Step 1: What type of stay are you looking for?")
-    
+
     booking_types = get_booking_type_info()
-    
-    # Create columns for booking type cards with consistent height
+
+    # Create columns for booking type cards
     cols = st.columns(3)
-    
+
     for i, (key, info) in enumerate(booking_types.items()):
         with cols[i]:
-            # Simple clean card using Streamlit components
+            # Use native Streamlit container
             with st.container():
-                # Create a clean card-like layout
-                st.markdown(f"<div style='text-align: center; padding: 20px; background: #f8f9fa; border-radius: 12px; border: 1px solid #e9ecef; margin: 10px 0;'>", unsafe_allow_html=True)
-                
-                # Emoji and title
+                # Emoji and title (pure Streamlit)
                 emoji = info['title'].split()[0]
                 title = info['title'].split(' ', 1)[1] if len(info['title'].split()) > 1 else info['title']
-                
-                st.markdown(f"<div style='font-size: 48px; margin-bottom: 16px;'>{emoji}</div>", unsafe_allow_html=True)
-                st.markdown(f"<h3 style='color: #333; margin: 0 0 12px 0;'>{title}</h3>", unsafe_allow_html=True)
-                st.markdown(f"<p style='color: #666; font-size: 14px; margin-bottom: 16px;'>{info['description']}</p>", unsafe_allow_html=True)
-                
+
+                st.markdown(f"### {emoji}")
+                st.markdown(f"**{title}**")
+                st.caption(info['description'])
+
                 # Duration info
                 duration_text = f"Max: {info['max_duration']} days" if info['max_duration'] else "Flexible duration"
-                st.markdown(f"<small style='color: #888; font-weight: 500;'>{duration_text}</small>", unsafe_allow_html=True)
-                
-                st.markdown("</div>", unsafe_allow_html=True)
-            
-            # Modern button
-            if st.button(f"Choose {info['title'].split(' ', 1)[1] if len(info['title'].split()) > 1 else info['title']}", 
-                        key=f"select_{key}", use_container_width=True):
+                st.info(duration_text)
+
+            # Button
+            if st.button(f"Choose {title}", key=f"select_{key}", use_container_width=True):
                 st.session_state.booking_type = key
                 st.session_state.booking_step = 2
                 st.rerun()

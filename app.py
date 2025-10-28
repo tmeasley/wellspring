@@ -57,8 +57,8 @@ def main():
         st.markdown("---")
         st.markdown("**Contact Information**")
         st.markdown("""
-        📞 **Phone:** (555) 123-4567  
-        📧 **Email:** info@wellspringmountain.org
+        📞 **Phone:** 743-241-6310
+        📧 **Email:** SpringMountainWellness@proton.me
         """)
     
     # Route to appropriate page

@@ -18,20 +18,32 @@ class PropertyManagementOperations:
     # NOTES OPERATIONS
     @staticmethod
     @safe_database_operation
-    def create_property_note(unit_id: int, note_type: str, title: str, content: str, 
+    def create_property_note(unit_id: int, note_type: str, title: str, content: str,
                            priority: str = 'medium', created_by: str = 'staff') -> int:
-        """Create a new property note"""
+        """Create a new property note and send email notification"""
         conn = get_db_connection()
         try:
+            # Get unit name for notification
+            unit_cursor = conn.execute("SELECT name FROM lodging_units WHERE id = ?", (unit_id,))
+            unit_row = unit_cursor.fetchone()
+            unit_name = unit_row[0] if unit_row else "Unknown Unit"
+
             cursor = conn.execute("""
-                INSERT INTO property_notes 
+                INSERT INTO property_notes
                 (lodging_unit_id, note_type, title, content, priority, created_by)
                 VALUES (?, ?, ?, ?, ?, ?)
-            """, (unit_id, note_type, sanitize_input(title, 200), 
+            """, (unit_id, note_type, sanitize_input(title, 200),
                   sanitize_input(content, 5000), priority, created_by))
-            
+
             note_id = cursor.lastrowid
             conn.commit()
+
+            # Send email notification
+            try:
+                notify_property_note_created(unit_name, title, content, priority, created_by)
+            except Exception as e:
+                logging.warning(f"Failed to send email notification: {e}")
+
             return note_id
         finally:
             conn.close()
